@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奶茶随机抽取器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .step {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .step-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .temp-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .temp-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .temp-btn.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .wheel-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .wheel {
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            position: relative;
+            border: 8px solid #667eea;
+            transition: transform 3s cubic-bezier(0.23, 1, 0.32, 1);
+            background: conic-gradient(
+                #ff6b6b 0deg 60deg,
+                #feca57 60deg 120deg,
+                #48dbfb 120deg 180deg,
+                #ff9ff3 180deg 240deg,
+                #54a0ff 240deg 300deg,
+                #5f27cd 300deg 360deg
+            );
+        }
+
+        .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            border: 3px solid #667eea;
+            z-index: 10;
+        }
+
+        .wheel-pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 30px solid #ff6b6b;
+            z-index: 5;
+        }
+
+        .brand-label {
+            position: absolute;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            font-size: 0.9em;
+        }
+
+        .spin-btn {
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .spin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .spin-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .drinks-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .drink-item {
+            padding: 15px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .drink-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .drink-item.selected {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .add-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .form-group input {
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-btn {
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            height: fit-content;
+        }
+
+        .add-btn:hover {
+            background: #218838;
+        }
+
+        .result {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            border-radius: 15px;
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .wheel {
+                width: 200px;
+                height: 200px;
+            }
+
+            .add-form {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .temp-buttons {
+                flex-direction: column;
+            }
+
+            .drinks-list {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .step {
+                padding: 15px;
+            }
+
+            .wheel {
+                width: 180px;
+                height: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧋 奶茶随机抽取器</h1>
+            <p>让命运决定今天喝什么奶茶吧！</p>
+        </div>
+        
+        <div class="content">
+            <!-- 步骤1：选择冷热饮 -->
+            <div class="step">
+                <div class="step-title">① 选择饮品温度</div>
+                <div class="temp-buttons">
+                    <button class="temp-btn" data-temp="cold">🧊 冷饮</button>
+                    <button class="temp-btn" data-temp="hot">🔥 热饮</button>
+                </div>
+            </div>
+
+            <!-- 步骤2：转盘选择品牌 -->
+            <div class="step">
+                <div class="step-title">② 转动转盘选择品牌</div>
+                <div class="wheel-container">
+                    <div class="wheel-pointer"></div>
+                    <div class="wheel" id="wheel">
+                        <div class="wheel-center"></div>
+                    </div>
+                    <button class="spin-btn" id="spinBtn">🎯 转动转盘</button>
+                    <div id="selectedBrand" class="result hidden"></div>
+                </div>
+            </div>
+
+            <!-- 步骤3：选择具体饮品 -->
+            <div class="step">
+                <div class="step-title">③ 从品牌中选择饮品</div>
+                <div id="drinksContainer" class="hidden">
+                    <div class="drinks-list" id="drinksList"></div>
+                    <button class="spin-btn" id="randomDrinkBtn" style="margin-top: 20px; display: none;">🎲 随机选择饮品</button>
+                    <div id="selectedDrink" class="result hidden"></div>
+                </div>
+            </div>
+
+            <!-- 步骤4：添加自定义品牌和饮品 -->
+            <div class="step">
+                <div class="step-title">④ 添加自定义品牌和饮品</div>
+                <div class="add-form">
+                    <div class="form-group">
+                        <label for="brandInput">品牌名称</label>
+                        <input type="text" id="brandInput" placeholder="例如：喜茶">
+                    </div>
+                    <div class="form-group">
+                        <label for="drinkInput">饮品名称</label>
+                        <input type="text" id="drinkInput" placeholder="例如：芝芝莓莓">
+                    </div>
+                    <button class="add-btn" id="addBtn">➕ 添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 奶茶数据
+        let teaData = {
+            '喜茶': {
+                cold: ['芝芝莓莓', '芝芝桃桃', '多肉葡萄', '满杯红柚', '芝芝芒芒'],
+                hot: ['烤黑糖波波牛乳', '豆豆波波茶', '红茶拿铁', '茉莉花茶', '乌龙茶']
+            },
+            '奈雪的茶': {
+                cold: ['霸气橙子', '霸气葡萄', '霸气芝士草莓', '鲜果茶', '柠檬茶'],
+                hot: ['宝藏茶', '金色山脉', '蜜桃乌龙茶', '茉莉毛尖', '红茶拿铁']
+            },
+            '一点点': {
+                cold: ['四季春茶', '冰淇淋红茶', '柠檬汽水', '养乐多绿茶', '波霸奶茶'],
+                hot: ['珍珠奶茶', '红茶拿铁', '阿萨姆奶茶', '乌龙奶茶', '茉莉花茶']
+            },
+            'CoCo': {
+                cold: ['百香双响炮', '柠檬养乐多', '芒果绿茶', '珍珠奶茶', '布丁奶茶'],
+                hot: ['珍珠奶茶', '椰果奶茶', '红茶拿铁', '奶茶三兄弟', '焦糖奶茶']
+            },
+            '茶百道': {
+                cold: ['杨枝甘露', '满杯百香果', '柠檬茶', '芝士莓莓', '超级杯'],
+                hot: ['珍珠奶茶', '红豆奶茶', '芋圆奶茶', '烤奶茶', '港式奶茶']
+            },
+            '古茗': {
+                cold: ['柠檬茶', '芝士葡萄', '水果茶', '奶昔', '气泡水'],
+                hot: ['奶茶', '豆乳茶', '红茶拿铁', '乌龙奶茶', '港式奶茶']
+            }
+        };
+
+        let currentTemp = null;
+        let currentBrand = null;
+        let isSpinning = false;
+
+        // 获取品牌列表
+        function getBrands() {
+            return Object.keys(teaData);
+        }
+
+        // 初始化转盘
+        function initWheel() {
+            const wheel = document.getElementById('wheel');
+            const brands = getBrands();
+            const anglePerBrand = 360 / brands.length;
+            
+            // 清空现有标签
+            wheel.querySelectorAll('.brand-label').forEach(label => label.remove());
+            
+            brands.forEach((brand, index) => {
+                const label = document.createElement('div');
+                label.className = 'brand-label';
+                label.textContent = brand;
+                
+                const angle = anglePerBrand * index + anglePerBrand / 2;
+                const radian = (angle * Math.PI) / 180;
+                const radius = 80;
+                
+                const x = Math.cos(radian - Math.PI / 2) * radius;
+                const y = Math.sin(radian - Math.PI / 2) * radius;
+                
+                label.style.left = `calc(50% + ${x}px)`;
+                label.style.top = `calc(50% + ${y}px)`;
+                label.style.transform = 'translate(-50%, -50%)';
+                
+                wheel.appendChild(label);
+            });
+        }
+
+        // 温度选择
+        document.querySelectorAll('.temp-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.temp-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTemp = btn.dataset.temp;
+                
+                // 重置后续步骤
+                document.getElementById('selectedBrand').classList.add('hidden');
+                document.getElementById('drinksContainer').classList.add('hidden');
+                document.getElementById('selectedDrink').classList.add('hidden');
+                currentBrand = null;
+            });
+        });
+
+        // 转盘旋转
+        document.getElementById('spinBtn').addEventListener('click', () => {
+            if (!currentTemp) {
+                alert('请先选择饮品温度！');
+                return;
+            }
+            
+            if (isSpinning) return;
+            
+            isSpinning = true;
+            const spinBtn = document.getElementById('spinBtn');
+            spinBtn.disabled = true;
+            
+            const wheel = document.getElementById('wheel');
+            const brands = getBrands();
+            const anglePerBrand = 360 / brands.length;
+            
+            // 随机选择一个品牌
+            const selectedIndex = Math.floor(Math.random() * brands.length);
+            const selectedBrand = brands[selectedIndex];
+            
+            // 计算旋转角度
+            const targetAngle = 360 * 5 + (360 - anglePerBrand * selectedIndex - anglePerBrand / 2);
+            
+            wheel.style.transform = `rotate(${targetAngle}deg)`;
+            
+            setTimeout(() => {
+                currentBrand = selectedBrand;
+                document.getElementById('selectedBrand').textContent = `选中品牌：${selectedBrand}`;
+                document.getElementById('selectedBrand').classList.remove('hidden');
+                
+                showDrinks(selectedBrand);
+                
+                isSpinning = false;
+                spinBtn.disabled = false;
+            }, 3000);
+        });
+
+        // 显示饮品列表
+        function showDrinks(brand) {
+            const container = document.getElementById('drinksContainer');
+            const drinksList = document.getElementById('drinksList');
+            const drinks = teaData[brand][currentTemp] || [];
+            
+            drinksList.innerHTML = '';
+            
+            drinks.forEach(drink => {
+                const drinkItem = document.createElement('div');
+                drinkItem.className = 'drink-item';
+                drinkItem.textContent = drink;
+                
+                drinkItem.addEventListener('click', () => {
+                    document.querySelectorAll('.drink-item').forEach(item => {
+                        item.classList.remove('selected');
+                    });
+                    drinkItem.classList.add('selected');
+                    
+                    document.getElementById('selectedDrink').textContent = `最终选择：${drink}`;
+                    document.getElementById('selectedDrink').classList.remove('hidden');
+                });
+                
+                drinksList.appendChild(drinkItem);
+            });
+            
+            container.classList.remove('hidden');
+            document.getElementById('randomDrinkBtn').style.display = drinks.length > 0 ? 'block' : 'none';
+            document.getElementById('selectedDrink').classList.add('hidden');
+        }
+
+        // 随机选择饮品
+        document.getElementById('randomDrinkBtn').addEventListener('click', () => {
+            if (!currentBrand || !currentTemp) return;
+            
+            const drinks = teaData[currentBrand][currentTemp] || [];
+            if (drinks.length === 0) return;
+            
+            const randomDrink = drinks[Math.floor(Math.random() * drinks.length)];
+            
+            // 清除之前的选择
+            document.querySelectorAll('.drink-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 高亮选中的饮品
+            document.querySelectorAll('.drink-item').forEach(item => {
+                if (item.textContent === randomDrink) {
+                    item.classList.add('selected');
+                }
+            });
+            
+            document.getElementById('selectedDrink').textContent = `随机选择：${randomDrink}`;
+            document.getElementById('selectedDrink').classList.remove('hidden');
+        });
+
+        // 添加自定义品牌和饮品
+        document.getElementById('addBtn').addEventListener('click', () => {
+            const brandInput = document.getElementById('brandInput');
+            const drinkInput = document.getElementById('drinkInput');
+            
+            const brand = brandInput.value.trim();
+            const drink = drinkInput.value.trim();
+            
+            if (!brand || !drink) {
+                alert('请输入品牌名称和饮品名称！');
+                return;
+            }
+            
+            // 如果品牌不存在，创建新品牌
+            if (!teaData[brand]) {
+                teaData[brand] = { cold: [], hot: [] };
+            }
+            
+            // 添加到冷饮和热饮列表（可以根据需要修改）
+            if (!teaData[brand].cold.includes(drink)) {
+                teaData[brand].cold.push(drink);
+            }
+            if (!teaData[brand].hot.includes(drink)) {
+                teaData[brand].hot.push(drink);
+            }
+            
+            // 重新初始化转盘
+            initWheel();
+            
+            // 清空输入框
+            brandInput.value = '';
+            drinkInput.value = '';
+            
+            alert(`成功添加：${brand} - ${drink}`);
+            
+            // 如果当前选中的品牌是新添加的品牌，更新饮品列表
+            if (currentBrand === brand && currentTemp) {
+                showDrinks(brand);
+            }
+        });
+
+        // 回车键添加
+        document.getElementById('drinkInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('addBtn').click();
+            }
+        });
+
+        // 初始化
+        initWheel();
+    </script>
+</body>
+</html>
